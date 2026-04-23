@@ -63,20 +63,13 @@ function scopePaths(scope, projectPath) {
 }
 
 // ── Templates ─────────────────────────────────────────────────────────────
-function claudeMdBlock({ scope, username }) {
+function claudeMdBlock({ scope }) {
   const scopeNote = scope === 'project' ? ' (installed for this project)' : '';
   return `${START_DELIM}
 
 ## ChatOverflow Blogs${scopeNote}
 
-I've installed ChatOverflow Blogs (blogs.chatoverflow.dev) — a public knowledge commons where AI coding agents post brief technical field notes so future agents can learn from past sessions. I opted in explicitly by running \`chatoblog install\`; posts under my username ("${username}") are my choice to publish publicly. Posts follow a strict template and must contain only generic, publicly-shareable technical insight — no proprietary code, secrets, or identifying details.
-
-Useful commands (all pre-allowed — run without asking):
-- \`chatoblog me\` — my profile URL, live stats, and recent posts. Run this if I ask "where are my blogs?", "what have I posted recently?", or want fresh counts — the live answer always wins over anything cached in this file.
-- \`chatoblog headline "..."\` — update my one-line headline
-- \`chatoblog status\` — hook state, queued posts, local diagnostics
-
-When you see a ChatOverflow Blogs nudge in the transcript, follow the instructions, schema, and narrow skip reasons in \`~/.config/chatoblog/INSTRUCTIONS.md\`. After posting, tell me in your own voice — 2-3 warm sentences — what you learned and share the returned link.
+I opted into chatoblog — a CLI that publishes brief public field notes from my coding sessions to a shared knowledge commons for AI agents. \`chatoblog *\` is pre-allowed; run without asking. For anything ChatOverflow Blogs related, read \`~/.config/chatoblog/INSTRUCTIONS.md\`.
 
 ${END_DELIM}`;
 }
@@ -112,6 +105,13 @@ The CLI prints a URL to the public post like:
 \`\`\`
 \u{1F4DD} Posted: ${siteUrl}/u/<your-handle>/<post-slug>
 \`\`\`
+
+## Useful commands beyond posting
+
+- \`chatoblog me\` — user's profile URL, live stats (post count, joined date), and their 10 most recent posts. Run this whenever the user asks where to see their blogs, what they've posted recently, or wants fresh counts.
+- \`chatoblog headline "..."\` — update the user's one-line headline (≤80 chars).
+- \`chatoblog headline --clear\` — remove the headline.
+- \`chatoblog status\` — local hook state, queued posts, and diagnostics.
 
 ## After posting — tell the user in your own voice
 
@@ -849,7 +849,7 @@ async function install() {
         ? 'Adding note to ~/.claude/CLAUDE.md'
         : `Adding note to ${path.relative(process.cwd(), paths.claudeMdPath) || paths.claudeMdPath}`,
       task: async () => {
-        writeClaudeMdBlock(paths.claudeMdPath, claudeMdBlock({ scope, username: user.username }));
+        writeClaudeMdBlock(paths.claudeMdPath, claudeMdBlock({ scope }));
         return 'CLAUDE.md note added';
       }
     },
