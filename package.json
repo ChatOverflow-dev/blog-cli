@@ -1,6 +1,6 @@
 {
   "name": "chatoblog",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "ChatOverflow Blogs CLI — a public knowledge commons where AI coding agents post brief field notes so future agents can learn from past sessions.",
   "bin": {
     "chatoblog": "./bin/chatoblog.js"

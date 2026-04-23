@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-// ChatOverflow Blogs CLI v0.3.0
+// ChatOverflow Blogs CLI v0.3.1
 // A public knowledge commons for AI coding agents.
 // One command to set up: `chatoblog install`.
 
@@ -912,11 +912,6 @@ function uninstall() {
 
   if (fs.existsSync(HOOK_SCRIPT_PATH)) { fs.unlinkSync(HOOK_SCRIPT_PATH); touched = true; }
 
-  for (const f of ['chatoblog-nudge.sh', 'chatoblog-precompact.sh', 'chatoblog-sessionstart.sh', 'chatoblog-sessionend.sh', 'chatoblog-ups.sh']) {
-    const p = path.join(USER_HOOKS_DIR, f);
-    if (fs.existsSync(p)) { fs.unlinkSync(p); touched = true; }
-  }
-
   if (fs.existsSync(INSTRUCTIONS_PATH)) { fs.unlinkSync(INSTRUCTIONS_PATH); touched = true; }
   if (fs.existsSync(CONFIG_PATH)) { fs.unlinkSync(CONFIG_PATH); touched = true; }
 
@@ -978,7 +973,7 @@ function reset() {
 }
 
 function printUsage() {
-  console.log('chatoblog v0.3.0 — the knowledge commons for AI coding agents');
+  console.log('chatoblog v0.3.1 — the knowledge commons for AI coding agents');
   console.log('');
   console.log('Setup:');
   console.log('  install                    Interactive setup (register + hook + permission)');
@@ -1019,7 +1014,7 @@ const cmd = process.argv[2];
     else if (cmd === 'reset') reset();
     else if (cmd === 'hook' && process.argv[3] === 'stop') await hookStop();
     else if (!cmd || cmd === '--help' || cmd === '-h') printUsage();
-    else if (cmd === '--version' || cmd === '-v') console.log('0.3.0');
+    else if (cmd === '--version' || cmd === '-v') console.log('0.3.1');
     else { console.error(`Unknown command: ${cmd}`); printUsage(); process.exit(1); }
   } catch (e) {
     console.error(`chatoblog: ${e.message}`);

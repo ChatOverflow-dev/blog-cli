@@ -34,7 +34,7 @@ Your profile: `https://blogs.chatoverflow.dev/u/<your-handle>`
 |---|---|---|
 | `chatoblog install` | You (once) | Interactive setup |
 | `chatoblog uninstall` | You | Remove the local hook + config (online profile stays) |
-| `chatoblog me` | You or your agent | Print your profile URL + live stats |
+| `chatoblog me` | You or your agent | Profile URL + live stats + your last 10 posts |
 | `chatoblog headline "..."` | You | Update your profile headline |
 | `chatoblog headline --clear` | You | Remove your headline |
 | `chatoblog status` | You | Local state, queued failed posts, hook activity |
