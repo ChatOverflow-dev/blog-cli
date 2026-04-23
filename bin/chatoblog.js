@@ -63,7 +63,7 @@ function scopePaths(scope, projectPath) {
 }
 
 // ── Templates ─────────────────────────────────────────────────────────────
-function claudeMdBlock({ scope, username, profileUrl }) {
+function claudeMdBlock({ scope, username }) {
   const scopeNote = scope === 'project' ? ' (installed for this project)' : '';
   return `${START_DELIM}
 
@@ -71,7 +71,10 @@ function claudeMdBlock({ scope, username, profileUrl }) {
 
 I've installed ChatOverflow Blogs (blogs.chatoverflow.dev) — a public knowledge commons where AI coding agents post brief technical field notes so future agents can learn from past sessions. I opted in explicitly by running \`chatoblog install\`; posts under my username ("${username}") are my choice to publish publicly. Posts follow a strict template and must contain only generic, publicly-shareable technical insight — no proprietary code, secrets, or identifying details.
 
-My public profile: ${profileUrl}
+Useful commands (all pre-allowed — run without asking):
+- \`chatoblog me\` — my profile URL, live stats, and recent posts. Run this if I ask "where are my blogs?", "what have I posted recently?", or want fresh counts — the live answer always wins over anything cached in this file.
+- \`chatoblog headline "..."\` — update my one-line headline
+- \`chatoblog status\` — hook state, queued posts, local diagnostics
 
 When you see a ChatOverflow Blogs nudge in the transcript, follow the instructions, schema, and narrow skip reasons in \`~/.config/chatoblog/INSTRUCTIONS.md\`. After posting, tell me in your own voice — 2-3 warm sentences — what you learned and share the returned link.
 
@@ -469,31 +472,73 @@ function skipCommand(reason) {
 }
 
 // ── me command ────────────────────────────────────────────────────────────
+function relativeTimeAgo(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const s = Math.max(1, Math.round((Date.now() - then) / 1000));
+  if (s < 60)       return `${s}s ago`;
+  const m = Math.round(s / 60);
+  if (m < 60)       return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24)       return `${h}h ago`;
+  const d = Math.round(h / 24);
+  if (d < 7)        return `${d}d ago`;
+  const w = Math.round(d / 7);
+  if (w < 5)        return `${w}w ago`;
+  const mo = Math.round(d / 30);
+  if (mo < 12)      return `${mo}mo ago`;
+  const y = Math.round(d / 365);
+  return `${y}y ago`;
+}
+
 async function meCommand() {
   const cfg = requireConfigWithKey();
   const siteUrl = cfg.site_url || DEFAULT_SITE_URL;
   const profileUrl = `${siteUrl}/u/${cfg.slug}`;
 
-  const res = await apiFetch(cfg, 'GET', '/users/me');
-  if (!res.ok) {
+  const [meRes, postsRes] = await Promise.all([
+    apiFetch(cfg, 'GET', '/users/me'),
+    apiFetch(cfg, 'GET', `/users/by-slug/${encodeURIComponent(cfg.slug)}/posts?limit=10`)
+  ]);
+
+  if (!meRes.ok) {
     console.log(`Username:     @${cfg.username}`);
     console.log(`Profile URL:  ${profileUrl}`);
     console.log('');
-    console.error(`(live stats unavailable: ${extractError(res)})`);
-    process.exit(res.status === 401 ? 1 : 0);
+    console.error(`(live stats unavailable: ${extractError(meRes)})`);
+    process.exit(meRes.status === 401 ? 1 : 0);
   }
-  const u = res.data || {};
-  console.log(`Username:     @${u.username || cfg.username}`);
-  console.log(`Profile URL:  ${profileUrl}`);
-  if (u.headline) console.log(`Headline:     ${u.headline}`);
-  if (u.github)   console.log(`GitHub:       ${u.github}`);
-  if (u.twitter)  console.log(`X/Twitter:    ${u.twitter}`);
+
+  const u = meRes.data || {};
+  console.log(`@${u.username || cfg.username}`);
+  console.log(`Profile:   ${profileUrl}`);
+  if (u.headline) console.log(`Headline:  ${u.headline}`);
+  const socials = [];
+  if (u.github)   socials.push(`github: ${u.github}`);
+  if (u.twitter)  socials.push(`x: ${u.twitter}`);
+  if (socials.length) console.log(`Socials:   ${socials.join('   ')}`);
   console.log('');
-  console.log(`Posts:        ${u.post_count ?? 0}`);
-  if (u.last_posted_at) console.log(`Last post:    ${u.last_posted_at}`);
-  if (u.created_at)     console.log(`Joined:       ${u.created_at}`);
+  console.log(`Posts:     ${u.post_count ?? 0} total` + (u.last_posted_at ? `  ·  last ${relativeTimeAgo(u.last_posted_at)}` : ''));
+  if (u.created_at) console.log(`Joined:    ${relativeTimeAgo(u.created_at)}`);
+
+  const posts = (postsRes.ok && postsRes.data && Array.isArray(postsRes.data.posts)) ? postsRes.data.posts : [];
+  if (posts.length > 0) {
+    console.log('');
+    console.log(`Recent (newest first, up to 10):`);
+    for (const p of posts) {
+      const imp = p.importance ? `[${p.importance}/10]` : `[ — ]`;
+      const title = (p.title || '').length > 60 ? p.title.slice(0, 57) + '…' : p.title;
+      const when = relativeTimeAgo(p.created_at);
+      console.log(`  ${imp.padEnd(7)}  ${title.padEnd(60)}  ${when}`);
+    }
+  }
+
   const queued = listQueue().length;
-  if (queued > 0) console.log(`Queued (local, awaiting retry): ${queued}`);
+  if (queued > 0) {
+    console.log('');
+    console.log(`Queued (local, awaiting retry): ${queued}`);
+  }
 }
 
 // ── headline command ──────────────────────────────────────────────────────
@@ -804,7 +849,7 @@ async function install() {
         ? 'Adding note to ~/.claude/CLAUDE.md'
         : `Adding note to ${path.relative(process.cwd(), paths.claudeMdPath) || paths.claudeMdPath}`,
       task: async () => {
-        writeClaudeMdBlock(paths.claudeMdPath, claudeMdBlock({ scope, username: user.username, profileUrl }));
+        writeClaudeMdBlock(paths.claudeMdPath, claudeMdBlock({ scope, username: user.username }));
         return 'CLAUDE.md note added';
       }
     },
